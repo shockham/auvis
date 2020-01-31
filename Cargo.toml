@@ -9,7 +9,8 @@ crate-type = ["cdylib"]
 
 [dependencies]
 infuse = "0.4"
-wasm-bindgen = "0.2.43"
+wasm-bindgen = "0.2.58"
+wasm-bindgen-futures = "0.4.8"
 instant = { version = "0.1", features = [ "wasm-bindgen", "now" ] }
 
 [dependencies.web-sys]
@@ -20,4 +21,13 @@ features = [
   'AudioDestinationNode',
   'AudioNode',
   'AudioParam',
+  'GainNode',
+  'BiquadFilterNode',
+  'BiquadFilterType',
+  'OscillatorNode',
+  'OscillatorType',
+  'WaveShaperNode',
+  'DynamicsCompressorNode',
+  'AnalyserNode',
+  'console',
 ]

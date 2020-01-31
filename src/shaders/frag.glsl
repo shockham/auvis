@@ -7,16 +7,21 @@ const float EPSILON = 0.0001;
 const int MAX_ITERS = 8;
 const float HALF_PI =  1.5707964;
 
+const float FREQ_MUL = 2.0;
+const float BASE_SIZE = 1.3;
+
 const float distance = 15.0;
 const float noise = 0.2;
-const float displ = 0.0;
-const float light = 0.5;
+const float displ = 2.0;
+const float light = 0.7;
 const float ncolor = 0.05;
 const float round = 0.6;
 const float size = 1.0;
 const vec2 dimensions = vec2(1000.0, 1000.0);
 
 uniform float time;
+uniform vec4 freq_1;
+uniform vec4 freq_2;
 
 varying vec3 vposition;
 varying vec3 vcolor;
@@ -62,24 +67,64 @@ vec3 rep(in vec3 p, in vec3 c) {
     return q;
 }
 
+
+
+float smmin( float d1, float d2) {
+    float k = 0.5;
+    float h = clamp( 0.5 + 0.5*(d2-d1)/k, 0.0, 1.0 );
+    return mix( d2, d1, h ) - k*h*(1.0-h); }
+
 float scene(vec3 p) {
-	vec3 q = rep(p, vec3(8.0, 8.0, 8.0));
-    vec3 rp = rotateY(time + sin(time)) * q;
+	vec3 q = p;//rep(p, vec3(16.0, 8.0, 8.0));
+    //vec3 rp = rotateY(time + sin(time)) * q;
 
-	float o_octa = max(
-		-box(
-            q + vec3(0.0, -0.7 - sin(time / 2.6), 0.0),
-            vec3(2.0, 0.5, 2.0)
-        ),
-		onion(onion(onion(
-			octa(
-				rp + disp(q, displ * abs(cos(time / 8.0))),
-				round + 0.8 + cos(time / 3.69) * 0.5
-			),
-		0.4), 0.2), 0.05)
-	);
+    float o_plane = p.y + 1.6;
 
-    return o_octa;
+    vec3 displacement = q + disp(q, displ * abs(cos(time / 8.0)));
+
+    float sphere_0 = octa(
+        vec3(-7.0, 0.0, 0.0) + displacement,
+        BASE_SIZE + freq_1.x * FREQ_MUL
+    );
+    float sphere_1 = octa(
+        vec3(-5.0, 0.0, 0.0) + displacement,
+        BASE_SIZE + freq_1.y * FREQ_MUL
+    );
+    float sphere_2 = octa(
+        vec3(-3.0, 0.0, 0.0) + displacement,
+        BASE_SIZE + freq_1.z * FREQ_MUL
+    );
+    float sphere_3 = octa(
+        vec3(-1.0, 0.0, 0.0) + displacement,
+        BASE_SIZE + freq_1.a * FREQ_MUL
+    );
+    float sphere_4 = octa(
+        vec3(1.0, 0.0, 0.0) + displacement,
+        BASE_SIZE + freq_2.x * FREQ_MUL
+    );
+    float sphere_5 = octa(
+        vec3(3.0, 0.0, 0.0) + displacement,
+        BASE_SIZE + freq_2.y * FREQ_MUL
+    );
+    float sphere_6 = octa(
+        vec3(5.0, 0.0, 0.0) + displacement,
+        BASE_SIZE + freq_2.z * FREQ_MUL
+    );
+    float sphere_7 = octa(
+        vec3(7.0, 0.0, 0.0) + displacement,
+        BASE_SIZE + freq_2.a * FREQ_MUL
+    );
+
+    float o_sphere_total =
+        smmin(sphere_0, smmin(sphere_1, smmin(sphere_2, smmin(sphere_3,
+        smmin(sphere_4, smmin(sphere_5, smmin(sphere_6, sphere_7))))))
+    );
+
+    float o_onion = onion(onion(onion(o_sphere_total, 0.4), 0.2), 0.05);
+
+    float o_box_sub = box(p + vec3(0.0, abs(sin(time / 2.0)) * 10.0, 0.0), vec3(10.0));
+
+    return smmin(o_plane, max(o_onion, o_box_sub));
 }
 
 float shortest_dist(vec3 eye, vec3 dir, float start, float end) {
@@ -219,14 +264,14 @@ vec3 ray_dir(float fieldOfView, vec2 size, vec2 fragCoord) {
 void main() {
     vec3 dir = ray_dir(45.0, dimensions, vposition.xy * dimensions + (dimensions / 2.0));
 
-    vec3 input_cam_pos = vec3(1.0, 0.6, 1.0);
+    vec3 input_cam_pos = vec3(0.63, 0.7, 1.8);
     vec3 cam_pos = vec3(
         (cos(input_cam_pos.x) * cos(input_cam_pos.y)) + cos(time / 8.5),
         input_cam_pos.y - 0.25 + (sin(time / 3.5) * 0.25),
         (sin(input_cam_pos.x) * cos(input_cam_pos.y)) + sin(time / 12.2)
     ) * distance;
 
-    mat4 view_mat = view_matrix(cam_pos, vec3(5.0, 0.0, 5.0), vec3(0.0, 1.0, 0.0));
+    mat4 view_mat = view_matrix(cam_pos, vec3(0.0, 0.0, .0), vec3(0.0, 1.0, 0.0));
     vec3 v_dir = (view_mat * vec4(dir, 0.0)).xyz;
 
     gl_FragColor = render(cam_pos, v_dir);
